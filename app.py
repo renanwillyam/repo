@@ -43,7 +43,7 @@ with app.app_context():
 def load_user(user_id):
     return Usuario.query.get(int(user_id))
 
-# HTML do dashboard com suporte a PWA
+# HTML do dashboard (TEMPLATE) — mantido como está
 TEMPLATE = """
 <!doctype html>
 <html lang="pt-br">
@@ -131,7 +131,7 @@ TEMPLATE = """
 </body>
 </html>
 """
-
+# ROTAS
 @app.route('/cadastro', methods=['GET', 'POST'])
 def cadastro():
     if request.method == 'POST':
@@ -217,4 +217,37 @@ def index():
 @login_required
 def add():
     nova = Transacao(
-        descricao=request.form['
+        descricao=request.form['descricao'],
+        valor=float(request.form['valor']),
+        tipo=request.form['tipo'],
+        data=datetime.strptime(request.form['data'], '%Y-%m-%d'),
+        usuario_id=current_user.id
+    )
+    db.session.add(nova)
+    db.session.commit()
+    return redirect(url_for('index'))
+
+@app.route('/relatorio')
+@login_required
+def relatorio():
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer)
+    pdf.setTitle("Relatório Financeiro")
+
+    transacoes = Transacao.query.filter_by(usuario_id=current_user.id).all()
+    y = 800
+    pdf.drawString(100, y, f"Relatório de {current_user.nome}")
+    y -= 40
+
+    for t in transacoes:
+        valor_formatado = locale.currency(t.valor, grouping=True)
+        linha = f"{t.data.strftime('%d/%m/%Y')} - {t.tipo} - {t.descricao} - {valor_formatado}"
+        pdf.drawString(100, y, linha)
+        y -= 20
+        if y < 50:
+            pdf.showPage()
+            y = 800
+
+    pdf.save()
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name="relatorio.pdf", mimetype='application/pdf')
