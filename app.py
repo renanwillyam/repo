@@ -208,4 +208,13 @@ def index():
         grafico_pizza = pizza.to_html(full_html=False)
     else:
         grafico_barras = "<p>Nenhuma transação ainda.</p>"
-       
+        grafico_pizza = "<p>Nenhuma transação ainda.</p>"
+
+    return render_template_string(TEMPLATE, transacoes=transacoes, saldo=saldo,
+                                  grafico_barras=grafico_barras, grafico_pizza=grafico_pizza)
+
+@app.route('/add', methods=['POST'])
+@login_required
+def add():
+    nova = Transacao(
+        descricao=request.form['
